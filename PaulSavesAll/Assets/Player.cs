@@ -12,13 +12,13 @@ public class Player : MonoBehaviour
 
     // run
     [SerializeField] float runSpeed = 5f;
-    [SerializeField] float rampUp = 0.5f;        // How fast we get speed forward/backward
-    [SerializeField] float deceleration = 0.5f;  // How fast we decelerate when we are no longer gaining speed
+    [SerializeField] float rampUp = 0.5f;        
+    [SerializeField] float deceleration = 0.5f;  
     [SerializeField] float runClampNumber = -1f;
     [SerializeField] float slowMo = .5f;
     
 
-        // jump
+    // jump
     [SerializeField] float jumpHeight = 5f; 
     [SerializeField] float jumpPressedRememberedTime = 0.3f;
     [SerializeField] float jumpingUp = 2.2f;
@@ -31,13 +31,15 @@ public class Player : MonoBehaviour
     [SerializeField] float drag = 3f;
     [SerializeField] float gravity = 10f;
     [SerializeField] Vector2 rygarJump = new Vector2(25f, 25f);
+    [SerializeField] float turnSpeed = 10f;
+    [SerializeField] float turnDeceleration = 30f;
+    [SerializeField] float timer = .5f;
 
 
-    //[SerializeField] float testSidespeed = 10f;
 
-
-    //State
+    // State
     bool isAlive = true;
+    bool running = false;
 
 
 
@@ -47,9 +49,9 @@ public class Player : MonoBehaviour
     CapsuleCollider2D myBodyCollider2D;
     BoxCollider2D myFeet;
     PolygonCollider2D myDetector2D;
+    CircleCollider2D myLanding2D;
     float jumpPressedRemembered = 0f;
     float jumpPressedRememberedUp = 0f;
-
     float oldPos;
     float beforeWallPosition;
     float speed;
@@ -57,6 +59,8 @@ public class Player : MonoBehaviour
     float facingFixed;
     float jumpingFixedY;
     float jumpingFixedX;
+    public Animation Anime;
+
 
 
     //Collider2D myCollider2D;
@@ -72,7 +76,7 @@ public class Player : MonoBehaviour
         gravityScaleAtStart = myRigidBody.gravityScale;
         myFeet = GetComponent<BoxCollider2D>();
         myDetector2D = GetComponent<PolygonCollider2D>();
-
+        myLanding2D = GetComponent<CircleCollider2D>();
     }
 
 
@@ -97,7 +101,6 @@ public class Player : MonoBehaviour
         Jump();
         FlipSprite();
         Rygar();
-
     }
 
     
@@ -109,12 +112,12 @@ public class Player : MonoBehaviour
         Invoke("getPosBeforeWall", .1f);
 
 
-
         // deceleration 
         if (Mathf.Abs(controlThrow) <= .9f)
         {
             speed = Mathf.MoveTowards(speed, 0f, deceleration * Time.deltaTime);
         }
+
 
         // turn deceleration 
         else if (facingFixed != facing && feetOnGround())
@@ -123,22 +126,53 @@ public class Player : MonoBehaviour
             facingFixed = facing;
         }
 
+
         // acceleration
         else
         {
             speed += Mathf.Abs(controlThrow) * rampUp * Time.deltaTime;
         }
 
+
+        // run
         speed = Mathf.Clamp(speed, runClampNumber, Mathf.Abs(runClampNumber));
         Vector2 playerVelocity = new Vector2(controlThrow * speed * runSpeed, myRigidBody.velocity.y);
         myRigidBody.velocity = playerVelocity;
 
-        // stop against wall animation 
+
+        // run faster
+        if (CrossPlatformInputManager.GetButtonDown("Run") && running == false)
+        {
+            running = true;
+            runSpeed *= 1.5f;
+            Anime["running"].speed = 8f;
+        }
+        else if (CrossPlatformInputManager.GetButtonUp("Run") && running == true)
+        {
+            runSpeed /= 1.5f;
+            running = false;
+        }
+
+
+        // run and stop against wall animation 
         if (feetOnGround())
         {
             myAnimator.SetBool("jump", false);
             myAnimator.SetBool("running", myRigidBody.position.x != beforeWallPosition && myRigidBody.velocity.x != 0 && !myDetector2D.IsTouchingLayers(LayerMask.GetMask("Ground")));
         }
+
+        //if (running == false)
+        //{
+        //    speed /= 3f;
+        //}
+
+
+        //if (feetOnGround() && myRigidBody.position.x != beforeWallPosition && myRigidBody.velocity.x != 0 && !myDetector2D.IsTouchingLayers(LayerMask.GetMask("Ground")))
+        //{
+        //    myAnimator.SetBool("jump", false);
+        //    myAnimator.SetFloat("running1", 1f);
+        //}
+
 
         // fall animation
         else
@@ -147,6 +181,7 @@ public class Player : MonoBehaviour
             myAnimator.SetBool("jump", true);
         }
     }
+
 
     // a lazy way of doing things tbh
     void getPosBeforeWall()
@@ -163,7 +198,6 @@ public class Player : MonoBehaviour
 
     private void Jump()
     {
-        float oldPosJump;
         bool jumpActive = false;
         myFeet.enabled = true;
         myRigidBody.gravityScale = gravityScaleAtStart;
@@ -185,16 +219,20 @@ public class Player : MonoBehaviour
         //modifies descending speed 
         else if (jumpPressedRememberedUp > 1 && myRigidBody.velocity.y <= jumpHeightBeforeFall && !feetOnGround())
         {
-            myRigidBody.velocity += Vector2.up * Physics2D.gravity.y * (jumpFallSpeed - 1) * Time.deltaTime;
-            Mathf.Clamp(myRigidBody.velocity.y, -.001f, -20f);
-            myRigidBody.drag = drag;
+            float fallSpeed = (Physics2D.gravity.y * (jumpFallSpeed - 1)*timer* Time.deltaTime);
+            float clamped = Mathf.Clamp(fallSpeed, 0f, -15f);
+            Mathf.MoveTowards(myRigidBody.velocity.y, clamped, 4f);
+
+            myRigidBody.velocity += new Vector2(0f, fallSpeed)  ;
+            //Debug.Log(myRigidBody.velocity.y);
+            //myRigidBody.drag = drag;
         }
 
         // falling off something with no jump
         else if (!feetOnGround())
         {
             myRigidBody.velocity += Vector2.up + Physics2D.gravity * 2f * Time.deltaTime;
-            myRigidBody.drag = drag;
+            //myRigidBody.drag = drag;
         }
 
         // resets drag
@@ -218,11 +256,6 @@ public class Player : MonoBehaviour
         {
             Vector2 jumpVelocityToAdd = new Vector2(0f, jumpHeight);
 
-            // trying to add low jump
-            if (myRigidBody.velocity.y > 0 && !Input.GetKey("space"))
-            {
-                myRigidBody.velocity += Vector2.up * Physics2D.gravity.y * (lowJumpHeight - 1) * Time.deltaTime;
-            }
 
             // wall jump
             if (myRigidBody.position.y != jumpingFixedY && myRigidBody.velocity.y <= -.001f)
@@ -230,6 +263,7 @@ public class Player : MonoBehaviour
                 myRigidBody.velocity += jumpVelocityToAdd - new Vector2(myRigidBody.velocity.x, myRigidBody.velocity.y);
                 myRigidBody.gravityScale = gravityScaleAtStart;
                 Invoke("afterJumpSideSpeed", .03f);
+
             }
 
             // full jump
@@ -237,6 +271,24 @@ public class Player : MonoBehaviour
             {
                 myRigidBody.velocity += jumpVelocityToAdd - myRigidBody.velocity;
                 myRigidBody.gravityScale = gravityScaleAtStart;
+            }
+
+            // trying to add low jump
+
+                //float jumpPressedRemembered1 = 0f;
+                //float jumpPressedRememberedTime1 = 1f;
+                //jumpPressedRemembered1 -= Time.deltaTime;
+                //if (CrossPlatformInputManager.GetButtonUp("Jump"))
+                //{
+                //    jumpPressedRemembered1 = jumpPressedRememberedTime1;
+                //}
+
+            if (CrossPlatformInputManager.GetButtonUp("Jump"))
+            {
+                //myRigidBody.velocity += Vector2.up * Physics2D.gravity.y * 5f * (lowJumpHeight - 1) * Time.deltaTime;
+
+                myRigidBody.velocity += Vector2.up * -200f;
+                Debug.Log("let go of jump!");
             }
             //Debug.Log(myRigidBody.velocity.y);
 
@@ -252,15 +304,29 @@ public class Player : MonoBehaviour
             jumpActive = true;
         }
 
+
+   
+
+        //if (jumpActive && !feetOnGround()) {
+        //    if (facingFixed != facing)
+        //    {
+        //        float xPos = Mathf.MoveTowards(10f, 5f, (turnDeceleration * Time.deltaTime));
+        //        myRigidBody.velocity = new Vector2(xPos * facing, myRigidBody.velocity.y);
+        //        //facingFixed = facing;
+        //    }
+        //}
+
+
         // landing and slow down or trying to at least
-        if (feetOnGround() && jumpActive)
+        if (myLanding2D.IsTouchingLayers(LayerMask.GetMask("Ground")) && jumpActive)
         {
             //var yVelocity = myRigidBody.velocity.y;
-            Vector2 landingVelocity = new Vector2(facing * slowMo, myRigidBody.velocity.y);
+            Vector2 landingVelocity = new Vector2(facing * 3f, myRigidBody.velocity.y);
             //yVelocity = myRigidBody.velocity.x;
             //speed = Mathf.MoveTowards(speed, 0f, deceleration * 1f);
             myRigidBody.velocity = landingVelocity;
-            print("landed");
+            //print("landed");
+            jumpActive = false;
             return;
         }
     }
