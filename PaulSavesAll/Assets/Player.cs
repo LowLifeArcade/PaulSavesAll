@@ -101,15 +101,18 @@ public class Player : MonoBehaviour
         Jump();
         FlipSprite();
         Rygar();
+
     }
 
-    
+
     //find a way to take speed back to base number so you can't press horizontal back and forth gaining speed
 
     private void Run()
     {
         float controlThrow = CrossPlatformInputManager.GetAxisRaw("Horizontal");
         Invoke("getPosBeforeWall", .1f);
+
+        //myAnimator.speed = 1f;
 
 
         // deceleration 
@@ -140,17 +143,21 @@ public class Player : MonoBehaviour
         myRigidBody.velocity = playerVelocity;
 
 
+
+
         // run faster
         if (CrossPlatformInputManager.GetButtonDown("Run") && running == false)
         {
             running = true;
             runSpeed *= 1.5f;
-            Anime["running"].speed = 8f;
+            myAnimator.speed = 1.25f;
         }
         else if (CrossPlatformInputManager.GetButtonUp("Run") && running == true)
         {
             runSpeed /= 1.5f;
             running = false;
+            myAnimator.speed = 1f;
+
         }
 
 
@@ -159,6 +166,7 @@ public class Player : MonoBehaviour
         {
             myAnimator.SetBool("jump", false);
             myAnimator.SetBool("running", myRigidBody.position.x != beforeWallPosition && myRigidBody.velocity.x != 0 && !myDetector2D.IsTouchingLayers(LayerMask.GetMask("Ground")));
+
         }
 
         //if (running == false)
@@ -179,7 +187,11 @@ public class Player : MonoBehaviour
         {
             myAnimator.SetBool("running", false);
             myAnimator.SetBool("jump", true);
+            myAnimator.speed = 1.8f;
+
         }
+
+
     }
 
 
@@ -256,21 +268,36 @@ public class Player : MonoBehaviour
         {
             Vector2 jumpVelocityToAdd = new Vector2(0f, jumpHeight);
 
+            //float jumpPressedRemembered1 = 0f;
+            //float jumpPressedRememberedTime1 = 1f;
+            //jumpPressedRemembered1 -= Time.deltaTime;
 
-            // wall jump
-            if (myRigidBody.position.y != jumpingFixedY && myRigidBody.velocity.y <= -.001f)
-            {
-                myRigidBody.velocity += jumpVelocityToAdd - new Vector2(myRigidBody.velocity.x, myRigidBody.velocity.y);
-                myRigidBody.gravityScale = gravityScaleAtStart;
-                Invoke("afterJumpSideSpeed", .03f);
+            //if (CrossPlatformInputManager.GetButton("Jump"))
+            //{
+            //    Debug.Log("held down");
+            //}
 
-            }
+            //// wall jump
+            //if (myRigidBody.position.y != jumpingFixedY && myRigidBody.velocity.y <= -.001f)
+            //{
+            //    myRigidBody.velocity += jumpVelocityToAdd - new Vector2(myRigidBody.velocity.x, myRigidBody.velocity.y);
+            //    myRigidBody.gravityScale = gravityScaleAtStart;
+            //    Invoke("afterJumpSideSpeed", .03f);
 
-            // full jump
-            else if (myRigidBody.velocity.y <= .001f)
+                //}
+
+                // full jump
+                if (myRigidBody.velocity.y <= .001f)
             {
                 myRigidBody.velocity += jumpVelocityToAdd - myRigidBody.velocity;
                 myRigidBody.gravityScale = gravityScaleAtStart;
+                if (CrossPlatformInputManager.GetButtonUp("Jump"))
+                {
+                    //myRigidBody.velocity += Vector2.up * Physics2D.gravity.y * 5f * (lowJumpHeight - 1) * Time.deltaTime;
+
+                    myRigidBody.velocity += Vector2.up * -200f;
+                    Debug.Log("let go of  jump!");
+                }
             }
 
             // trying to add low jump
@@ -283,13 +310,13 @@ public class Player : MonoBehaviour
                 //    jumpPressedRemembered1 = jumpPressedRememberedTime1;
                 //}
 
-            if (CrossPlatformInputManager.GetButtonUp("Jump"))
-            {
-                //myRigidBody.velocity += Vector2.up * Physics2D.gravity.y * 5f * (lowJumpHeight - 1) * Time.deltaTime;
+            //if (CrossPlatformInputManager.GetButtonUp("Jump"))
+            //{
+            //    //myRigidBody.velocity += Vector2.up * Physics2D.gravity.y * 5f * (lowJumpHeight - 1) * Time.deltaTime;
 
-                myRigidBody.velocity += Vector2.up * -200f;
-                Debug.Log("let go of jump!");
-            }
+            //    myRigidBody.velocity += Vector2.up * -200f;
+            //    Debug.Log("let go of  jump!");
+            //}
             //Debug.Log(myRigidBody.velocity.y);
 
             //if (myRigidBody.velocity.y >=0 && myRigidBody.position.x == jumpingFixedX)
@@ -327,6 +354,8 @@ public class Player : MonoBehaviour
             myRigidBody.velocity = landingVelocity;
             //print("landed");
             jumpActive = false;
+            myAnimator.speed = 1f;
+
             return;
         }
     }
