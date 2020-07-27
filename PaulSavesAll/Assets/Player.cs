@@ -52,14 +52,13 @@ public class Player : MonoBehaviour
     CircleCollider2D myLanding2D;
     float jumpPressedRemembered = 0f;
     float jumpPressedRememberedUp = 0f;
-    float oldPos;
     float beforeWallPosition;
     float speed;
     float facing;
     float facingFixed;
     float jumpingFixedY;
     float jumpingFixedX;
-    public Animation Anime;
+    //float oldPos;
 
 
 
@@ -149,12 +148,12 @@ public class Player : MonoBehaviour
         if (CrossPlatformInputManager.GetButtonDown("Run") && running == false)
         {
             running = true;
-            runSpeed *= 1.5f;
-            myAnimator.speed = 1.25f;
+            runSpeed *= 1.3f;
+            myAnimator.speed = 1.15f;
         }
         else if (CrossPlatformInputManager.GetButtonUp("Run") && running == true)
         {
-            runSpeed /= 1.5f;
+            runSpeed /= 1.3f;
             running = false;
             myAnimator.speed = 1f;
 
@@ -187,7 +186,7 @@ public class Player : MonoBehaviour
         {
             myAnimator.SetBool("running", false);
             myAnimator.SetBool("jump", true);
-            myAnimator.speed = 1.8f;
+            myAnimator.speed = 1.5f;
 
         }
 
@@ -215,7 +214,7 @@ public class Player : MonoBehaviour
         myRigidBody.gravityScale = gravityScaleAtStart;
 
         // used to detect if jumping or falling
-           jumpPressedRememberedUp -= Time.deltaTime;
+        jumpPressedRememberedUp -= Time.deltaTime;
         if (CrossPlatformInputManager.GetButtonDown("Jump"))
         {
             jumpPressedRememberedUp = jumpingUp;
@@ -229,28 +228,19 @@ public class Player : MonoBehaviour
         }
 
         //modifies descending speed 
-        else if (jumpPressedRememberedUp > 1 && myRigidBody.velocity.y <= jumpHeightBeforeFall && !feetOnGround())
+        else if (CrossPlatformInputManager.GetButton("Jump") && myRigidBody.velocity.y <= jumpHeightBeforeFall && !feetOnGround())
         {
             float fallSpeed = (Physics2D.gravity.y * (jumpFallSpeed - 1)*timer* Time.deltaTime);
             float clamped = Mathf.Clamp(fallSpeed, 0f, -15f);
             Mathf.MoveTowards(myRigidBody.velocity.y, clamped, 4f);
 
             myRigidBody.velocity += new Vector2(0f, fallSpeed)  ;
-            //Debug.Log(myRigidBody.velocity.y);
-            //myRigidBody.drag = drag;
         }
 
         // falling off something with no jump
         else if (!feetOnGround())
         {
-            myRigidBody.velocity += Vector2.up + Physics2D.gravity * 2f * Time.deltaTime;
-            //myRigidBody.drag = drag;
-        }
-
-        // resets drag
-        if (feetOnGround() || myFeet.IsTouchingLayers(LayerMask.GetMask("enemy")))
-        {
-            myRigidBody.drag = 0f;
+            myRigidBody.velocity += Vector2.up + Physics2D.gravity * 1.1f * Time.deltaTime;
         }
 
 
@@ -268,62 +258,22 @@ public class Player : MonoBehaviour
         {
             Vector2 jumpVelocityToAdd = new Vector2(0f, jumpHeight);
 
-            //float jumpPressedRemembered1 = 0f;
-            //float jumpPressedRememberedTime1 = 1f;
-            //jumpPressedRemembered1 -= Time.deltaTime;
+     
 
-            //if (CrossPlatformInputManager.GetButton("Jump"))
-            //{
-            //    Debug.Log("held down");
-            //}
-
-            //// wall jump
-            //if (myRigidBody.position.y != jumpingFixedY && myRigidBody.velocity.y <= -.001f)
-            //{
-            //    myRigidBody.velocity += jumpVelocityToAdd - new Vector2(myRigidBody.velocity.x, myRigidBody.velocity.y);
-            //    myRigidBody.gravityScale = gravityScaleAtStart;
-            //    Invoke("afterJumpSideSpeed", .03f);
-
-                //}
-
-                // full jump
-                if (myRigidBody.velocity.y <= .001f)
+            // full jump
+            if (myRigidBody.velocity.y <= .001f)
             {
                 myRigidBody.velocity += jumpVelocityToAdd - myRigidBody.velocity;
                 myRigidBody.gravityScale = gravityScaleAtStart;
-                if (CrossPlatformInputManager.GetButtonUp("Jump"))
-                {
-                    //myRigidBody.velocity += Vector2.up * Physics2D.gravity.y * 5f * (lowJumpHeight - 1) * Time.deltaTime;
 
-                    myRigidBody.velocity += Vector2.up * -200f;
-                    Debug.Log("let go of  jump!");
+                //// wall jump
+                if (myRigidBody.position.y != jumpingFixedY )
+                {
+                
+                    Invoke("afterJumpSideSpeed", .03f);
+
                 }
             }
-
-            // trying to add low jump
-
-                //float jumpPressedRemembered1 = 0f;
-                //float jumpPressedRememberedTime1 = 1f;
-                //jumpPressedRemembered1 -= Time.deltaTime;
-                //if (CrossPlatformInputManager.GetButtonUp("Jump"))
-                //{
-                //    jumpPressedRemembered1 = jumpPressedRememberedTime1;
-                //}
-
-            //if (CrossPlatformInputManager.GetButtonUp("Jump"))
-            //{
-            //    //myRigidBody.velocity += Vector2.up * Physics2D.gravity.y * 5f * (lowJumpHeight - 1) * Time.deltaTime;
-
-            //    myRigidBody.velocity += Vector2.up * -200f;
-            //    Debug.Log("let go of  jump!");
-            //}
-            //Debug.Log(myRigidBody.velocity.y);
-
-            //if (myRigidBody.velocity.y >=0 && myRigidBody.position.x == jumpingFixedX)
-            //{
-            //    myRigidBody.velocity *= .5f;
-            //}
-            //Debug.Log(myRigidBody.velocity.x);
         }
 
         if (myRigidBody.velocity.y <= -.001f)
@@ -332,17 +282,14 @@ public class Player : MonoBehaviour
         }
 
 
-   
+        // short hop
+        if (!CrossPlatformInputManager.GetButton("Jump") && myRigidBody.velocity.y > 1f)
+        {
+            //myRigidBody.velocity += Vector2.up * Physics2D.gravity.y * -1f * (lowJumpHeight - 1) * Time.deltaTime;
 
-        //if (jumpActive && !feetOnGround()) {
-        //    if (facingFixed != facing)
-        //    {
-        //        float xPos = Mathf.MoveTowards(10f, 5f, (turnDeceleration * Time.deltaTime));
-        //        myRigidBody.velocity = new Vector2(xPos * facing, myRigidBody.velocity.y);
-        //        //facingFixed = facing;
-        //    }
-        //}
-
+            myRigidBody.velocity += Vector2.up * -1f * lowJumpHeight;
+            Debug.Log("let go of  jump!");
+        }
 
         // landing and slow down or trying to at least
         if (myLanding2D.IsTouchingLayers(LayerMask.GetMask("Ground")) && jumpActive)
@@ -377,6 +324,7 @@ public class Player : MonoBehaviour
         if (myFeet.IsTouchingLayers(LayerMask.GetMask("enemy"))) 
         {
             GetComponent<Rigidbody2D>().velocity = rygarJump;
+            Jump();
             if (myRigidBody.velocity.y >= 0.01f)
             {
                 myAnimator.SetBool("jump", false);
@@ -506,3 +454,59 @@ private void OnDisable()
 //yFall = Mathf.Clamp(yFall, -.001f, -10f);
 
 //myRigidBody.velocity += new Vector2(xFall, yFall);
+
+
+
+// player needs to rotate to 146 degrees on y axis but not rigidbody on gameobject actual player prefab
+
+//float jumpPressedRemembered1 = 0f;
+//float jumpPressedRememberedTime1 = 1f;
+//jumpPressedRemembered1 -= Time.deltaTime;
+
+//if (CrossPlatformInputManager.GetButton("Jump"))
+//{
+//    Debug.Log("held down");
+//}
+
+
+
+
+
+// trying to add low jump
+
+//float jumpPressedRemembered1 = 0f;
+//float jumpPressedRememberedTime1 = 1f;
+//jumpPressedRemembered1 -= Time.deltaTime;
+//if (CrossPlatformInputManager.GetButtonUp("Jump"))
+//{
+//    jumpPressedRemembered1 = jumpPressedRememberedTime1;
+//}
+
+//if (CrossPlatformInputManager.GetButtonUp("Jump"))
+//{
+//    //myRigidBody.velocity += Vector2.up * Physics2D.gravity.y * 5f * (lowJumpHeight - 1) * Time.deltaTime;
+
+//    myRigidBody.velocity += Vector2.up * -200f;
+//    Debug.Log("let go of  jump!");
+//}
+//Debug.Log(myRigidBody.velocity.y);
+
+//if (myRigidBody.velocity.y >=0 && myRigidBody.position.x == jumpingFixedX)
+//{
+//    myRigidBody.velocity *= .5f;
+//}
+//Debug.Log(myRigidBody.velocity.x);
+
+
+
+
+
+
+//if (jumpActive && !feetOnGround()) {
+//    if (facingFixed != facing)
+//    {
+//        float xPos = Mathf.MoveTowards(10f, 5f, (turnDeceleration * Time.deltaTime));
+//        myRigidBody.velocity = new Vector2(xPos * facing, myRigidBody.velocity.y);
+//        //facingFixed = facing;
+//    }
+//}
