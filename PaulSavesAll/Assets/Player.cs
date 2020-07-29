@@ -76,6 +76,7 @@ public class Player : MonoBehaviour
         myFeet = GetComponent<BoxCollider2D>();
         myDetector2D = GetComponent<PolygonCollider2D>();
         myLanding2D = GetComponent<CircleCollider2D>();
+        myAnimator.speed = 1f;
     }
 
 
