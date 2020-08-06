@@ -1,0 +1,17 @@
+{
+"companyName": "Low Life Arcade",
+"productName": "Paul Saves All",
+"productVersion": "0.1",
+"dataUrl": "PaulWebGL52.data.unityweb",
+"wasmCodeUrl": "PaulWebGL52.wasm.code.unityweb",
+"wasmFrameworkUrl": "PaulWebGL52.wasm.framework.unityweb",
+"graphicsAPI": ["WebGL 2.0","WebGL 1.0"],
+"webglContextAttributes": {"preserveDrawingBuffer": false},
+"backgroundUrl": "PaulWebGL52.jpg",
+"splashScreenStyle": "Light",
+"backgroundColor": "#FFFFFF",
+"cacheControl": {"default": "must-revalidate"},
+"developmentBuild": false,
+"multithreading": false,
+"unityVersion": "2019.4.0f1"
+}
