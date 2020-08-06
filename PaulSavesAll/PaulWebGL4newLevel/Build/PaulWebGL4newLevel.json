@@ -1,0 +1,17 @@
+{
+"companyName": "DefaultCompany",
+"productName": "New Unity Project (1)",
+"productVersion": "0.1",
+"dataUrl": "PaulWebGL4newLevel.data.unityweb",
+"wasmCodeUrl": "PaulWebGL4newLevel.wasm.code.unityweb",
+"wasmFrameworkUrl": "PaulWebGL4newLevel.wasm.framework.unityweb",
+"graphicsAPI": ["WebGL 2.0","WebGL 1.0"],
+"webglContextAttributes": {"preserveDrawingBuffer": false},
+"backgroundUrl": "PaulWebGL4newLevel.jpg",
+"splashScreenStyle": "Dark",
+"backgroundColor": "#FFFFFF",
+"cacheControl": {"default": "must-revalidate"},
+"developmentBuild": false,
+"multithreading": false,
+"unityVersion": "2019.4.0f1"
+}
