@@ -149,12 +149,12 @@ public class Player : MonoBehaviour
         if (CrossPlatformInputManager.GetButtonDown("Run") && running == false)
         {
             running = true;
-            runSpeed *= 1.3f;
-            myAnimator.speed = 1.15f;
+            runSpeed *= 1.35f;
+            myAnimator.speed = 1.2f;
         }
         else if (CrossPlatformInputManager.GetButtonUp("Run") && running == true)
         {
-            runSpeed /= 1.3f;
+            runSpeed /= 1.35f;
             running = false;
             myAnimator.speed = 1f;
 
