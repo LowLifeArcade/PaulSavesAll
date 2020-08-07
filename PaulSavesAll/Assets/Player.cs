@@ -59,6 +59,7 @@ public class Player : MonoBehaviour
     float jumpingFixedY;
     float jumpingFixedX;
     //float oldPos;
+    float yPos;
 
 
 
@@ -82,6 +83,7 @@ public class Player : MonoBehaviour
 
     private void FixedUpdate()
     {
+        yPos = myRigidBody.position.y;
         //float beforeWallPosition = myRigidBody.position.x;
         //Vector2 direction;
         
@@ -105,7 +107,6 @@ public class Player : MonoBehaviour
     }
 
 
-    //find a way to take speed back to base number so you can't press horizontal back and forth gaining speed
 
     private void Run()
     {
@@ -123,7 +124,7 @@ public class Player : MonoBehaviour
 
 
         // turn deceleration 
-        else if (facingFixed != facing && feetOnGround())
+        else if (facingFixed != facing)
         {
             speed = Mathf.MoveTowards(speed, 0f, deceleration * 1f);
             facingFixed = facing;
@@ -143,6 +144,13 @@ public class Player : MonoBehaviour
         myRigidBody.velocity = playerVelocity;
 
 
+        // reduces velocity when up against a wall so when he jumps he doesn't just spring into fast speed
+        if (feetOnGround() && myDetector2D.IsTouchingLayers(LayerMask.GetMask("Ground")))
+        {
+            speed = Mathf.MoveTowards(speed, 0f, deceleration * Time.deltaTime);
+            myAnimator.SetBool("jump", false);
+
+        }
 
 
         // run faster
@@ -166,9 +174,9 @@ public class Player : MonoBehaviour
         {
             myAnimator.SetBool("jump", false);
             myAnimator.SetBool("running", myRigidBody.position.x != beforeWallPosition && myRigidBody.velocity.x != 0 && !myDetector2D.IsTouchingLayers(LayerMask.GetMask("Ground")));
-
         }
 
+     
         //if (running == false)
         //{
         //    speed /= 3f;
@@ -267,10 +275,10 @@ public class Player : MonoBehaviour
                 myRigidBody.velocity += jumpVelocityToAdd - myRigidBody.velocity;
                 myRigidBody.gravityScale = gravityScaleAtStart;
 
-                //// wall jump
-                if (myRigidBody.position.y != jumpingFixedY )
+                // wall jump
+                if (myRigidBody.position.y != yPos)
                 {
-                
+
                     Invoke("afterJumpSideSpeed", .03f);
 
                 }
@@ -293,10 +301,10 @@ public class Player : MonoBehaviour
         }
 
         // landing and slow down or trying to at least
-        if (myLanding2D.IsTouchingLayers(LayerMask.GetMask("Ground")) && jumpActive)
+        if (myLanding2D.IsTouchingLayers(LayerMask.GetMask("Ground")) && myRigidBody.velocity.y <= -1f)
         {
             //var yVelocity = myRigidBody.velocity.y;
-            Vector2 landingVelocity = new Vector2(facing * 3f, myRigidBody.velocity.y);
+            Vector2 landingVelocity = new Vector2(facing * .01f, myRigidBody.velocity.y);
             //yVelocity = myRigidBody.velocity.x;
             //speed = Mathf.MoveTowards(speed, 0f, deceleration * 1f);
             myRigidBody.velocity = landingVelocity;
@@ -308,10 +316,10 @@ public class Player : MonoBehaviour
         }
     }
 
-    private void afterJumpSideSpeed()
+    void afterJumpSideSpeed()
     {
         
-        Vector2 jumpVelocityToAdd = new Vector2(facing * jumpSideSpeedToAdd, myRigidBody.velocity.y);
+        Vector2 jumpVelocityToAdd = new Vector2(facing * Mathf.MoveTowards(1f, jumpSideSpeedToAdd, 20f * Time.deltaTime), myRigidBody.velocity.y);
         myRigidBody.velocity += jumpVelocityToAdd - myRigidBody.velocity;
     }
 
@@ -322,7 +330,7 @@ public class Player : MonoBehaviour
 
     private void Rygar()
     {
-        if (myFeet.IsTouchingLayers(LayerMask.GetMask("enemy"))) 
+        if (myLanding2D.IsTouchingLayers(LayerMask.GetMask("enemy"))) 
         {
             GetComponent<Rigidbody2D>().velocity = rygarJump;
             Jump();

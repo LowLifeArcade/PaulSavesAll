@@ -40,7 +40,7 @@ public class FrogEnemy : MonoBehaviour
 
     // when collider exits collision with whatever. In this case, the ground.
 
-    private void OnTriggerExit2D(Collider2D collision)
+    private void OnTriggerExit2D(Collider2D myBoxCollider)
     {
         transform.localScale = new Vector2(-(Mathf.Sign(-myRigidBody.velocity.x)), 1f);
 
