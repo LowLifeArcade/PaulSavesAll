@@ -34,12 +34,15 @@ public class Player : MonoBehaviour
     [SerializeField] float turnSpeed = 10f;
     [SerializeField] float turnDeceleration = 30f;
     [SerializeField] float timer = .5f;
+    [SerializeField] float drift = .975f;
 
 
 
     // State
     bool isAlive = true;
     bool running = false;
+    bool RygarJump = false;
+
 
 
 
@@ -60,6 +63,8 @@ public class Player : MonoBehaviour
     float jumpingFixedX;
     //float oldPos;
     float yPos;
+    float xVel;
+    float xDir;
 
 
 
@@ -78,15 +83,19 @@ public class Player : MonoBehaviour
         myDetector2D = GetComponent<PolygonCollider2D>();
         myLanding2D = GetComponent<CircleCollider2D>();
         myAnimator.speed = 1f;
+
     }
 
 
     private void FixedUpdate()
     {
         yPos = myRigidBody.position.y;
+        xVel = myRigidBody.velocity.x;
+
+
         //float beforeWallPosition = myRigidBody.position.x;
         //Vector2 direction;
-        
+
         //bool playerHasHorizontalSpeed = Mathf.Abs(myRigidBody.velocity.x) > Mathf.Epsilon;
         //if (playerHasHorizontalSpeed)
         //{
@@ -103,6 +112,8 @@ public class Player : MonoBehaviour
         Jump();
         FlipSprite();
         Rygar();
+        Debug.Log(CrossPlatformInputManager.GetAxisRaw("Horizontal"));
+
 
     }
 
@@ -113,17 +124,21 @@ public class Player : MonoBehaviour
         float controlThrow = CrossPlatformInputManager.GetAxisRaw("Horizontal");
         Invoke("getPosBeforeWall", .1f);
 
-        //myAnimator.speed = 1f;
+        // resets animation speed
+        if(feetOnGround() && !CrossPlatformInputManager.GetButton("Run"))
+        {
+            myAnimator.speed = 1f;
+        }
 
 
-        // deceleration 
+        // deceleration speed par
         if (Mathf.Abs(controlThrow) <= .9f)
         {
             speed = Mathf.MoveTowards(speed, 0f, deceleration * Time.deltaTime);
         }
 
 
-        // turn deceleration 
+        // turn deceleration speed par
         else if (facingFixed != facing)
         {
             speed = Mathf.MoveTowards(speed, 0f, deceleration * 1f);
@@ -131,7 +146,7 @@ public class Player : MonoBehaviour
         }
 
 
-        // acceleration
+        // acceleration speed par
         else
         {
             speed += Mathf.Abs(controlThrow) * rampUp * Time.deltaTime;
@@ -145,7 +160,7 @@ public class Player : MonoBehaviour
 
 
         // reduces velocity when up against a wall so when he jumps he doesn't just spring into fast speed
-        if (feetOnGround() && myDetector2D.IsTouchingLayers(LayerMask.GetMask("Ground")))
+        if (myDetector2D.IsTouchingLayers(LayerMask.GetMask("Ground")))
         {
             speed = Mathf.MoveTowards(speed, 0f, deceleration * Time.deltaTime);
             myAnimator.SetBool("jump", false);
@@ -158,7 +173,7 @@ public class Player : MonoBehaviour
         {
             running = true;
             runSpeed *= 1.35f;
-            myAnimator.speed = 1.2f;
+            myAnimator.speed = 1.25f;
         }
         else if (CrossPlatformInputManager.GetButtonUp("Run") && running == true)
         {
@@ -168,36 +183,24 @@ public class Player : MonoBehaviour
 
         }
 
+        bool jumpActive2 = false;
 
-        // run and stop against wall animation 
+        // run and stop against wall animation.
+        // also lazily makes everything not on the ground jumping
         if (feetOnGround())
         {
             myAnimator.SetBool("jump", false);
             myAnimator.SetBool("running", myRigidBody.position.x != beforeWallPosition && myRigidBody.velocity.x != 0 && !myDetector2D.IsTouchingLayers(LayerMask.GetMask("Ground")));
+            jumpActive2 = false;
+            RygarJump = false;
         }
-
-     
-        //if (running == false)
-        //{
-        //    speed /= 3f;
-        //}
-
-
-        //if (feetOnGround() && myRigidBody.position.x != beforeWallPosition && myRigidBody.velocity.x != 0 && !myDetector2D.IsTouchingLayers(LayerMask.GetMask("Ground")))
-        //{
-        //    myAnimator.SetBool("jump", false);
-        //    myAnimator.SetFloat("running1", 1f);
-        //}
-
-
-        // fall animation
-        else
+        else if (!feetOnGround())
         {
             myAnimator.SetBool("running", false);
             myAnimator.SetBool("jump", true);
-            myAnimator.speed = 1.5f;
 
         }
+
 
 
     }
@@ -218,9 +221,25 @@ public class Player : MonoBehaviour
 
     private void Jump()
     {
-        bool jumpActive = false;
+        bool jumpActive = true;
+        bool jumpActive2 = true;
         myFeet.enabled = true;
         myRigidBody.gravityScale = gravityScaleAtStart;
+
+        // for drift to work
+        if (feetOnGround() ) //&& myRigidBody.velocity.y >= 1f)
+        {
+            xVel = facingFixed;
+            jumpActive2 = false;
+        }
+
+
+        // landing // not sure if it works
+        if (jumpActive == true && feetOnGround())
+        {
+            jumpActive = false;
+            //myAnimator.SetBool("jump", false);
+        }
 
         // used to detect if jumping or falling
         jumpPressedRememberedUp -= Time.deltaTime;
@@ -242,6 +261,7 @@ public class Player : MonoBehaviour
             float fallSpeed = (Physics2D.gravity.y * (jumpFallSpeed - 1)*timer* Time.deltaTime);
             float clamped = Mathf.Clamp(fallSpeed, 0f, -15f);
             Mathf.MoveTowards(myRigidBody.velocity.y, clamped, 4f);
+            //myAnimator.SetBool("jump", true);
 
             myRigidBody.velocity += new Vector2(0f, fallSpeed)  ;
         }
@@ -258,47 +278,66 @@ public class Player : MonoBehaviour
         if (CrossPlatformInputManager.GetButtonDown("Jump"))
         {
             jumpPressedRemembered = jumpPressedRememberedTime;
+            //myAnimator.SetBool("jump", true);
+
         }
 
         Invoke("quickLookCompareJump", .01f);
 
         //actual jump
-        if (jumpPressedRemembered > 0 && feetOnGround()) // !Input.GetKeyDown("space")) || CrossPlatformInputManager.GetButtonDown("Jump"))//jumpPressedRemembered > 0 
+        if (jumpPressedRemembered > 0 && feetOnGround() && !RygarJump) // !Input.GetKeyDown("space")) || CrossPlatformInputManager.GetButtonDown("Jump"))//jumpPressedRemembered > 0 
         {
             Vector2 jumpVelocityToAdd = new Vector2(0f, jumpHeight);
+            //myAnimator.SetBool("jump", false);
 
-     
+            //myAnimator.SetBool("jump", true);
+
 
             // full jump
-            if (myRigidBody.velocity.y <= .001f)
+            if (myRigidBody.velocity.y <= .001f && myRigidBody.position.y >= yPos - .01f)
             {
                 myRigidBody.velocity += jumpVelocityToAdd - myRigidBody.velocity;
                 myRigidBody.gravityScale = gravityScaleAtStart;
+                //myAnimator.SetBool("jump", true);
+                jumpActive = true;
+                jumpActive2 = true;
 
-                // wall jump
-                if (myRigidBody.position.y != yPos)
-                {
 
-                    Invoke("afterJumpSideSpeed", .03f);
-
-                }
             }
+
+            // wall jump // doesn't really work the way i want. It comes in even when not in condition
+            else if (myRigidBody.velocity.y <= -.1f && myRigidBody.position.y < yPos -.01f) // && facing != facingFixed)
+            {
+                myRigidBody.velocity += jumpVelocityToAdd - myRigidBody.velocity;
+                myRigidBody.gravityScale = gravityScaleAtStart;
+                //myAnimator.SetBool("jump", true);
+                jumpActive = true;
+                jumpActive2 = true;
+                Invoke("afterJumpSideSpeed", .03f);
+            }
+
+      
         }
 
-        if (myRigidBody.velocity.y <= -.001f)
-        {
-            jumpActive = true;
-        }
-
+        // not sure what i was doing here
+        //if (myRigidBody.velocity.y <= -.001f)
+        //{
+        //    jumpActive = true;
+        //}
 
         // short hop
-        if (!CrossPlatformInputManager.GetButton("Jump") && myRigidBody.velocity.y > 1f)
+        if (!CrossPlatformInputManager.GetButton("Jump") && myRigidBody.velocity.y > 1f && !RygarJump)
         {
             //myRigidBody.velocity += Vector2.up * Physics2D.gravity.y * -1f * (lowJumpHeight - 1) * Time.deltaTime;
 
             myRigidBody.velocity += Vector2.up * -1f * lowJumpHeight;
-            Debug.Log("let go of  jump!");
+            //Debug.Log("let go of  jump!");
         }
+
+   
+
+        xDir = Mathf.Sign(myRigidBody.velocity.x);
+
 
         // landing and slow down or trying to at least
         if (myLanding2D.IsTouchingLayers(LayerMask.GetMask("Ground")) && myRigidBody.velocity.y <= -1f)
@@ -314,12 +353,27 @@ public class Player : MonoBehaviour
 
             return;
         }
+
+        Debug.Log(myRigidBody.velocity.x);
+
+        //// drift reset
+        //if (feetOnGround() || myLanding2D.IsTouchingLayers(LayerMask.GetMask("enemy")))
+        //{
+        //    xVel = 0f;
+        //}
+
+        // air drift
+        if (jumpActive2 == true && !feetOnGround() && Mathf.Abs(CrossPlatformInputManager.GetAxisRaw("Horizontal")) == 0f)
+        {
+            myRigidBody.velocity = new Vector2(xVel * drift, myRigidBody.velocity.y); 
+            return;
+        }
     }
 
     void afterJumpSideSpeed()
     {
         
-        Vector2 jumpVelocityToAdd = new Vector2(facing * Mathf.MoveTowards(1f, jumpSideSpeedToAdd, 20f * Time.deltaTime), myRigidBody.velocity.y);
+        Vector2 jumpVelocityToAdd = new Vector2(facing * Mathf.MoveTowards(1f, jumpSideSpeedToAdd, 20f * Time.deltaTime), myRigidBody.velocity.y * 1.1f);
         myRigidBody.velocity += jumpVelocityToAdd - myRigidBody.velocity;
     }
 
@@ -332,8 +386,28 @@ public class Player : MonoBehaviour
     {
         if (myLanding2D.IsTouchingLayers(LayerMask.GetMask("enemy"))) 
         {
-            GetComponent<Rigidbody2D>().velocity = rygarJump;
-            Jump();
+            RygarJump = false;
+            if (!CrossPlatformInputManager.GetButton("Jump"))
+            {
+                GetComponent<Rigidbody2D>().velocity += rygarJump * .68f - myRigidBody.velocity;
+                RygarJump = true;
+
+
+                float fallSpeed = (Physics2D.gravity.y * (jumpFallSpeed - 1) * timer * Time.deltaTime);
+                float clamped = Mathf.Clamp(fallSpeed, 0f, -15f);
+                Mathf.MoveTowards(myRigidBody.velocity.y, clamped, 4f);
+            }
+        
+            else if (CrossPlatformInputManager.GetButton("Jump"))
+            {
+                GetComponent<Rigidbody2D>().velocity += rygarJump * 1.02f - myRigidBody.velocity;
+                RygarJump = false;
+
+                float fallSpeed = (Physics2D.gravity.y * (jumpFallSpeed - 1) * timer * Time.deltaTime);
+                float clamped = Mathf.Clamp(fallSpeed, 0f, -15f);
+                Mathf.MoveTowards(myRigidBody.velocity.y, clamped, 4f);
+            }
+
             if (myRigidBody.velocity.y >= 0.01f)
             {
                 myAnimator.SetBool("jump", false);
@@ -341,7 +415,7 @@ public class Player : MonoBehaviour
         }
     }
 
-
+    // flips the character's sprite/model
     private void FlipSprite()
     {
         
@@ -356,7 +430,7 @@ public class Player : MonoBehaviour
 
     }
 
-
+    // used to compare direction they were and now are facing
     private void quickLookCompare()
     {
         Vector2 direction;
@@ -367,6 +441,12 @@ public class Player : MonoBehaviour
             facingFixed = direction.x;
         }
 
+    }
+
+    // holds past velocity 
+    void xVelo()
+    {
+        float xVelocity = myRigidBody.velocity.x;
     }
 
 
@@ -399,6 +479,35 @@ public class Player : MonoBehaviour
     //}
 }
 
+
+//if (running == false)
+//{
+//    speed /= 3f;
+//}
+
+
+//if (feetOnGround() && myRigidBody.position.x != beforeWallPosition && myRigidBody.velocity.x != 0 && !myDetector2D.IsTouchingLayers(LayerMask.GetMask("Ground")))
+//{
+//    myAnimator.SetBool("jump", false);
+//    myAnimator.SetFloat("running1", 1f);
+//}
+
+
+// fall animation // need to fix so it doesn't just default to jump animation
+//else if (!feetOnGround())
+//{
+//    myAnimator.SetBool("running", false);
+//    myAnimator.SetBool("jump", true);
+//    myAnimator.speed = 1.5f;
+//    if (myRigidBody.velocity.y > .01f)
+//    {
+//        jumpActive2 = true;
+//    }
+//}
+//else if (!feetOnGround() && myRigidBody.velocity.y < -.01f && jumpActive2 == false)
+//{
+//    myAnimator.SetBool("jump", false);
+//}
 
 
 /* private void Die()

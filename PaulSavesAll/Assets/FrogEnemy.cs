@@ -7,6 +7,7 @@ public class FrogEnemy : MonoBehaviour
     [SerializeField] float moveSpeed = 3f;
     Rigidbody2D myRigidBody;
     BoxCollider2D myBoxCollider;
+    PolygonCollider2D myPoly;
 
 
 
@@ -40,9 +41,13 @@ public class FrogEnemy : MonoBehaviour
 
     // when collider exits collision with whatever. In this case, the ground.
 
-    private void OnTriggerExit2D(Collider2D myBoxCollider)
+    private void OnTriggerExit2D(Collider2D ting)
     {
-        transform.localScale = new Vector2(-(Mathf.Sign(-myRigidBody.velocity.x)), 1f);
+        if (myBoxCollider.IsTouchingLayers(LayerMask.GetMask("Ground")) == false)
+        {
+            transform.localScale = new Vector2(-(Mathf.Sign(-myRigidBody.velocity.x)), 1f);
+
+        }
 
     }
 
