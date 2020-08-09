@@ -35,6 +35,7 @@ public class Player : MonoBehaviour
     [SerializeField] float turnDeceleration = 30f;
     [SerializeField] float timer = .5f;
     [SerializeField] float drift = .975f;
+    [SerializeField] float secondJump = 12f;
 
 
 
@@ -42,6 +43,10 @@ public class Player : MonoBehaviour
     bool isAlive = true;
     bool running = false;
     bool RygarJump = false;
+    int jumpCounter = 0;
+    //bool jumpActive = false;
+    //bool jumpActive2 = false;
+
 
 
 
@@ -112,8 +117,8 @@ public class Player : MonoBehaviour
         Jump();
         FlipSprite();
         Rygar();
-        Debug.Log(CrossPlatformInputManager.GetAxisRaw("Horizontal"));
-
+        //Debug.Log(CrossPlatformInputManager.GetAxisRaw("Horizontal"));
+        Debug.Log(jumpCounter);
 
     }
 
@@ -180,7 +185,6 @@ public class Player : MonoBehaviour
             runSpeed /= 1.35f;
             running = false;
             myAnimator.speed = 1f;
-
         }
 
         bool jumpActive2 = false;
@@ -190,9 +194,13 @@ public class Player : MonoBehaviour
         if (feetOnGround())
         {
             myAnimator.SetBool("jump", false);
+            myAnimator.SetBool("jump2", false);
+            myAnimator.SetBool("falling", false);
+
             myAnimator.SetBool("running", myRigidBody.position.x != beforeWallPosition && myRigidBody.velocity.x != 0 && !myDetector2D.IsTouchingLayers(LayerMask.GetMask("Ground")));
             jumpActive2 = false;
             RygarJump = false;
+
         }
         else if (!feetOnGround())
         {
@@ -226,11 +234,32 @@ public class Player : MonoBehaviour
         myFeet.enabled = true;
         myRigidBody.gravityScale = gravityScaleAtStart;
 
+        // jump animation
+
+        //if(Input.GetButton("Jump") && jumpCounter == 0 && !feetOnGround())
+        //{
+        //    myAnimator.SetBool("jump", true);
+        //}
+        //else if (Input.GetButton("Jump") && jumpCounter == 1 && !feetOnGround())
+        //{
+        //    myAnimator.SetBool("jump", false);
+        //    myAnimator.SetBool("jump2", true);
+        //}
+        //else if (!feetOnGround() && jumpCounter == 0 && !jumpActive2)
+        //{
+        //    myAnimator.SetBool("jump", false);
+        //    myAnimator.SetBool("jump2", false);
+        //    myAnimator.SetBool("falling", true);
+
+        //}
+
+
         // for drift to work
         if (feetOnGround() ) //&& myRigidBody.velocity.y >= 1f)
         {
             xVel = facingFixed;
             jumpActive2 = false;
+            jumpCounter = 0;
         }
 
 
@@ -285,28 +314,46 @@ public class Player : MonoBehaviour
         Invoke("quickLookCompareJump", .01f);
 
         //actual jump
-        if (jumpPressedRemembered > 0 && feetOnGround() && !RygarJump) // !Input.GetKeyDown("space")) || CrossPlatformInputManager.GetButtonDown("Jump"))//jumpPressedRemembered > 0 
+        if (jumpPressedRemembered > 0  && !RygarJump) // feetOnGround() // !Input.GetKeyDown("space")) || CrossPlatformInputManager.GetButtonDown("Jump"))//jumpPressedRemembered > 0 
         {
             Vector2 jumpVelocityToAdd = new Vector2(0f, jumpHeight);
-            //myAnimator.SetBool("jump", false);
+            bool canAirJump = true;
 
+            //myAnimator.SetBool("jump", false);
             //myAnimator.SetBool("jump", true);
+
+            //if (feetOnGround())
+            //{
+            //    //myRigidBody.velocity = new Vector2(0, myRigidBody.velocity.y);
+            //    //myRigidBody.AddForce(new Vector2(0, jumpForce));
+            //    canAirJump = true;
+            //}
+            //else
+            //{
+            //    if (canAirJump)
+            //    {
+            //        //myRigidBody.velocity = new Vector2(0, myRigidBody.velocity.y);
+            //        myAnimator.SetBool("jump", false);
+
+            //        myAnimator.SetBool("jump", true);
+            //        canAirJump = false;
+            //    }
+            //}
 
 
             // full jump
-            if (myRigidBody.velocity.y <= .001f && myRigidBody.position.y >= yPos - .01f)
+            if (myRigidBody.velocity.y <= .001f && myRigidBody.position.y >= yPos - .01f && jumpCounter == 0)
             {
                 myRigidBody.velocity += jumpVelocityToAdd - myRigidBody.velocity;
                 myRigidBody.gravityScale = gravityScaleAtStart;
                 //myAnimator.SetBool("jump", true);
                 jumpActive = true;
                 jumpActive2 = true;
-
-
+                //myAnimator.SetBool("jump", true);
             }
 
             // wall jump // doesn't really work the way i want. It comes in even when not in condition
-            else if (myRigidBody.velocity.y <= -.1f && myRigidBody.position.y < yPos -.01f) // && facing != facingFixed)
+            else if (myRigidBody.velocity.y <= -.1f && myRigidBody.position.y < yPos -.01f && jumpCounter == 0) // && facing != facingFixed)
             {
                 myRigidBody.velocity += jumpVelocityToAdd - myRigidBody.velocity;
                 myRigidBody.gravityScale = gravityScaleAtStart;
@@ -314,9 +361,20 @@ public class Player : MonoBehaviour
                 jumpActive = true;
                 jumpActive2 = true;
                 Invoke("afterJumpSideSpeed", .03f);
+                //myAnimator.SetBool("jump", true);
+            }
+            // double jump
+            else if (jumpCounter == 1)
+            {
+                myRigidBody.velocity += new Vector2(myRigidBody.velocity.x, secondJump) - myRigidBody.velocity;
+                myRigidBody.gravityScale = gravityScaleAtStart;
+                //myAnimator.SetBool("jump", false);
+                //myAnimator.SetBool("jump2", true);
+                jumpActive = true;
+                jumpActive2 = true;
+                jumpCounter += 1;
             }
 
-      
         }
 
         // not sure what i was doing here
@@ -332,9 +390,11 @@ public class Player : MonoBehaviour
 
             myRigidBody.velocity += Vector2.up * -1f * lowJumpHeight;
             //Debug.Log("let go of  jump!");
+            jumpCounter += 1;
+
         }
 
-   
+
 
         xDir = Mathf.Sign(myRigidBody.velocity.x);
 
